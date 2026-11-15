@@ -1,0 +1,34 @@
+services:
+  alerts.api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5003:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=alerts.db;Database=alertsdb;Username=postgres;Password=postgres
+      - RabbitMq__Host=rabbitmq
+      # A2A (LR4): URL in the Agent Card, must be reachable by peer agents on the Docker network
+      - A2A__PublicUrl=http://alerts.api:8080
+    depends_on:
+      alerts.db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  alerts.db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: alertsdb
+    ports:
+      - "5434:5432" # Mapped to a different host port than Catalog and Inventory DBs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d alertsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # The shared rabbitmq instance is defined in the Catalog compose file and wired
+  # together by the root docker-compose.yml (C:\SOA\MedStorageServices\docker-compose.yml).
