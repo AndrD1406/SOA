@@ -1,0 +1,24 @@
+# Root compose: runs the whole MedStorage system on one Docker network.
+#   docker compose up --build
+# Catalog API:   http://localhost:5001/swagger
+# Inventory API: http://localhost:5002/swagger (nginx gateway -> 2 inventory.api replicas)
+# Alerts API:    http://localhost:5003/swagger
+# User API:      http://localhost:5004/swagger (via gateway: http://localhost:5002/api/v1/user/...)
+# Keycloak:      http://localhost:8080/admin (admin/admin), realm "medstorage"
+# RabbitMQ UI:   http://localhost:15672 (guest/guest)
+include:
+  - MedStorageCatalog/MedStorageCatalog/docker-compose.yml
+  - MedStorageInventory/MedStorageInventory/docker-compose.yml
+  - MedStorageAlerts/MedStorageAlerts/docker-compose.yml
+  - MedStorageUser/MedStorageUser/docker-compose.yml
+
+services:
+  inventory.gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "5002:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - inventory.api
+      - user.api

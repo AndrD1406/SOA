@@ -1,0 +1,41 @@
+services:
+  # Identity Provider (OAuth2 / OIDC). Admin console: http://localhost:8080/admin (admin/admin)
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: start-dev --import-realm
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      # Tokens are always issued as http://localhost:8080/realms/medstorage (the URL clients log in through),
+      # while containers may still reach Keycloak as http://keycloak:8080 for keys/metadata.
+      - KC_HOSTNAME=http://localhost:8080
+      - KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+    ports:
+      - "8080:8080"
+    volumes:
+      # Realm "medstorage" with client, scopes user.read/user.write and a test user (imported once on first start)
+      - ../keycloak/medstorage-realm.json:/opt/keycloak/data/import/medstorage-realm.json:ro
+
+  user.api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5004:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - JwtAuth__Authority=http://keycloak:8080/realms/medstorage
+      - JwtAuth__ValidIssuer=http://localhost:8080/realms/medstorage
+      - JwtAuth__Audience=medstorage-user-api
+      - JwtAuth__RequireHttpsMetadata=false
+      # Registration: Keycloak Admin API via the "user-service" service account
+      - KeycloakAdmin__BaseUrl=http://keycloak:8080
+      - KeycloakAdmin__Realm=medstorage
+      - KeycloakAdmin__ClientId=user-service
+      - KeycloakAdmin__ClientSecret=user-service-dev-secret
+      - RabbitMq__Host=rabbitmq
+    depends_on:
+      keycloak:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy

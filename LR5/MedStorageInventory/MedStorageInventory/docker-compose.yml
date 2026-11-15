@@ -1,0 +1,45 @@
+services:
+  inventory.api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # No host port mapping: Docker's internal DNS load-balances requests
+    # for "inventory.api" across all replicas.
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=inventory.db;Database=inventorydb;Username=postgres;Password=postgres
+      - RabbitMq__Host=rabbitmq
+      # JWT (Keycloak): keys are fetched inside the Docker network, tokens are issued for localhost:8080
+      - JwtAuth__Authority=http://keycloak:8080/realms/medstorage
+      - JwtAuth__ValidIssuer=http://localhost:8080/realms/medstorage
+      - JwtAuth__Audience=medstorage-inventory-api
+      # Service account (client credentials) for calls to Catalog and the Alerts agent
+      - ServiceAuth__TokenEndpoint=http://keycloak:8080/realms/medstorage/protocol/openid-connect/token
+      - ServiceAuth__ClientId=inventory-service
+      - ServiceAuth__ClientSecret=inventory-service-dev-secret
+      - CatalogService__BaseUrl=http://catalog.api:8080
+      # A2A (LR4): peer agent discovered via its Agent Card; own card advertises the gateway URL
+      - A2A__AlertsAgentUrl=http://alerts.api:8080
+      - A2A__PublicUrl=http://localhost:5002
+    deploy:
+      mode: replicated
+      replicas: 2 # Horizontal scaling: runs 2 instances of the Inventory Service
+    depends_on:
+      inventory.db:
+        condition: service_healthy
+
+  inventory.db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventorydb
+    ports:
+      - "5433:5432" # Mapped to a different host port than Catalog DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventorydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # rabbitmq and catalog.api are defined in the root docker-compose.yml
+  # (C:\SOA\MedStorageServices\docker-compose.yml), which includes this file.

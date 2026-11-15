@@ -1,0 +1,62 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\SOA\\MedStorageServices\\MedStorageUser\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{082E155A-F910-EC94-06F8-2BD4D7DF532E}|MedStorageUser\\MedStorageUser.csproj|c:\\soa\\medstorageservices\\medstorageuser\\medstorageuser\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{082E155A-F910-EC94-06F8-2BD4D7DF532E}|MedStorageUser\\MedStorageUser.csproj|solutionrelative:medstorageuser\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{082E155A-F910-EC94-06F8-2BD4D7DF532E}|MedStorageUser\\MedStorageUser.csproj|c:\\soa\\medstorageservices\\medstorageuser\\medstorageuser\\controllers\\usercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{082E155A-F910-EC94-06F8-2BD4D7DF532E}|MedStorageUser\\MedStorageUser.csproj|solutionrelative:medstorageuser\\controllers\\usercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\SOA\\MedStorageServices\\MedStorageUser\\MedStorageUser\\Program.cs",
+              "RelativeDocumentMoniker": "MedStorageUser\\Program.cs",
+              "ToolTip": "C:\\SOA\\MedStorageServices\\MedStorageUser\\MedStorageUser\\Program.cs",
+              "RelativeToolTip": "MedStorageUser\\Program.cs",
+              "ViewState": "AgIAADoAAAAAAAAAAAAAAA8AAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-11-15T18:41:19.265Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "UserController.cs",
+              "DocumentMoniker": "C:\\SOA\\MedStorageServices\\MedStorageUser\\MedStorageUser\\Controllers\\UserController.cs",
+              "RelativeDocumentMoniker": "MedStorageUser\\Controllers\\UserController.cs",
+              "ToolTip": "C:\\SOA\\MedStorageServices\\MedStorageUser\\MedStorageUser\\Controllers\\UserController.cs",
+              "RelativeToolTip": "MedStorageUser\\Controllers\\UserController.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAACgAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-11-15T18:39:50.887Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
