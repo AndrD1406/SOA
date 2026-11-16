@@ -1,0 +1,39 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "n8n-incident-response",
+  "groupKey": "{}:{alertname=\"HighLatency\", service=\"inventory-api\"}",
+  "groupLabels": {
+    "alertname": "HighLatency",
+    "service": "inventory-api"
+  },
+  "commonLabels": {
+    "alertname": "HighLatency",
+    "job": "inventory-api",
+    "service": "inventory-api",
+    "severity": "warning",
+    "problem": "high_latency"
+  },
+  "commonAnnotations": {},
+  "externalURL": "http://alertmanager:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighLatency",
+        "job": "inventory-api",
+        "service": "inventory-api",
+        "severity": "warning",
+        "problem": "high_latency"
+      },
+      "annotations": {
+        "summary": "High p99 latency on inventory-api",
+        "description": "p99 HTTP latency of inventory-api is 812ms (threshold 500ms) over the last 5 minutes."
+      },
+      "startsAt": "2026-11-16T10:00:00Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus:9090/graph?g0.expr=HighLatency",
+      "fingerprint": "a1b2c3d4e5f60708"
+    }
+  ]
+}

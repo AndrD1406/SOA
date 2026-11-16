@@ -1,0 +1,58 @@
+# Prometheus configuration for MedStorage.
+# Every .NET service exposes OpenTelemetry metrics at GET /metrics on port 8080 (container port).
+#
+# dns_sd_configs (type A) instead of static_configs: Docker's embedded DNS returns one A record per
+# container behind a service name, so BOTH inventory.api replicas are scraped as separate targets.
+# A static "inventory.api:8080" target would hit a random replica on every scrape.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    system: medstorage
+
+rule_files:
+  - /etc/prometheus/alerts.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: catalog-api
+    dns_sd_configs:
+      - names: ["catalog.api"]
+        type: A
+        port: 8080
+        refresh_interval: 15s
+
+  - job_name: inventory-api
+    dns_sd_configs:
+      - names: ["inventory.api"]
+        type: A
+        port: 8080
+        refresh_interval: 15s
+
+  - job_name: alerts-api
+    dns_sd_configs:
+      - names: ["alerts.api"]
+        type: A
+        port: 8080
+        refresh_interval: 15s
+
+  - job_name: user-api
+    dns_sd_configs:
+      - names: ["user.api"]
+        type: A
+        port: 8080
+        refresh_interval: 15s
+
+  # The monitoring stack itself
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]

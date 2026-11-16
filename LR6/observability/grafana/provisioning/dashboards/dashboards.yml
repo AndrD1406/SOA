@@ -1,0 +1,10 @@
+apiVersion: 1
+
+providers:
+  - name: medstorage
+    folder: MedStorage
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true # edits in the UI are kept until Grafana restarts; export JSON to make them permanent
+    options:
+      path: /var/lib/grafana/dashboards

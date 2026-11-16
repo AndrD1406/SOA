@@ -1,0 +1,113 @@
+{
+  "id": "MedStorageIncident01",
+  "name": "MedStorage - Automated Incident Response",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "nodes": [
+    {
+      "id": "6a1f0c52-1b7e-4c0e-9f21-0a5d3e7b1001",
+      "name": "Alertmanager Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "4f3b1f0e-9d55-4c38-9a3e-6b1d2c7e8a01",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alertmanager",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "6a1f0c52-1b7e-4c0e-9f21-0a5d3e7b1002",
+      "name": "Parse Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Alertmanager webhook payload (version 4): { status, receiver, groupLabels, commonLabels, alerts: [...] }\n// One output item per alert, normalised for the ticketing / notification steps.\nconst payload = $input.first().json.body ?? {};\nconst alerts = Array.isArray(payload.alerts) ? payload.alerts : [];\n\nconst problemTitles = {\n  high_latency: 'High Latency',\n  high_error_rate: 'High Error Rate',\n  service_down: 'Service Down',\n};\n\nreturn alerts.map(a => {\n  const labels = a.labels ?? {};\n  const annotations = a.annotations ?? {};\n  const service = labels.service || labels.job || 'unknown-service';\n  const problem = labels.problem || labels.alertname;\n  return {\n    json: {\n      fingerprint: a.fingerprint,\n      status: a.status,                              // \"firing\" | \"resolved\"\n      alertName: labels.alertname,\n      problemType: problemTitles[problem] ?? labels.alertname,\n      service,\n      instance: labels.instance ?? null,\n      severity: labels.severity ?? 'warning',\n      summary: annotations.summary ?? labels.alertname,\n      description: annotations.description ?? '',\n      startsAt: a.startsAt,\n      endsAt: a.status === 'resolved' ? a.endsAt : null,\n      prometheusUrl: a.generatorURL,\n      receivedAt: new Date().toISOString(),\n    },\n  };\n});"
+      }
+    },
+    {
+      "id": "6a1f0c52-1b7e-4c0e-9f21-0a5d3e7b1003",
+      "name": "Create/Resolve Incident Ticket (Jira mock)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Jira imitation: creates an incident ticket for a firing alert and resolves the SAME ticket when the\n// alert resolves. Tickets are keyed by the Alertmanager fingerprint and kept in workflow static data\n// (persisted by n8n for active workflows; manual test runs start with an empty store).\nconst store = $getWorkflowStaticData('global');\nstore.tickets = store.tickets ?? {};\nstore.seq = store.seq ?? 0;\n\nconst grafana = $env.GRAFANA_URL || 'http://localhost:3001';\nconst jaeger = $env.JAEGER_URL || 'http://localhost:16686';\nconst priority = { critical: 'P1 - Highest', warning: 'P2 - High', info: 'P3 - Medium' };\n\nreturn $input.all().map(({ json: a }) => {\n  let ticket = store.tickets[a.fingerprint];\n  let action;\n\n  if (a.status === 'firing') {\n    if (ticket && ticket.status !== 'Resolved') {\n      action = 'updated';                          // Alertmanager repeat notification for an open incident\n      ticket.lastSeenAt = a.receivedAt;\n      ticket.occurrences += 1;\n    } else {\n      action = 'created';\n      store.seq += 1;\n      ticket = {\n        key: `MEDOPS-${String(store.seq).padStart(4, '0')}`,\n        project: 'MEDOPS',\n        issueType: 'Incident',\n        status: 'Open',\n        priority: priority[a.severity] ?? 'P3 - Medium',\n        summary: `[${a.severity.toUpperCase()}] ${a.problemType}: ${a.service}`,\n        description: a.description,\n        labels: ['aiops', 'auto-created', a.service, a.alertName],\n        component: a.service,\n        createdAt: a.receivedAt,\n        lastSeenAt: a.receivedAt,\n        occurrences: 1,\n        links: {\n          dashboard: `${grafana}/d/medstorage-overview?var-service=${encodeURIComponent(a.service)}`,\n          traces: `${jaeger}/search?service=${encodeURIComponent(a.service)}&lookback=1h`,\n          prometheus: a.prometheusUrl,\n        },\n      };\n    }\n  } else {\n    action = ticket ? 'resolved' : 'resolved-untracked';\n    ticket = ticket ?? { key: '(none)', summary: `${a.problemType}: ${a.service}`, links: {} };\n    ticket.status = 'Resolved';\n    ticket.resolvedAt = a.endsAt ?? a.receivedAt;\n  }\n  if (ticket.key !== '(none)') store.tickets[a.fingerprint] = ticket;\n\n  const icon = a.status === 'firing' ? (a.severity === 'critical' ? ':red_circle:' : ':large_orange_circle:') : ':white_check_mark:';\n  const slackText = [\n    `${icon} *${ticket.key}* ${action.toUpperCase()} - ${ticket.summary}`,\n    a.status === 'firing' ? `> ${a.description}` : `> Resolved at ${ticket.resolvedAt}`,\n    a.instance ? `Instance: \\`${a.instance}\\`` : null,\n    ticket.links.dashboard ? `<${ticket.links.dashboard}|Grafana> | <${ticket.links.traces}|Jaeger traces>` : null,\n  ].filter(Boolean).join('\\n');\n\n  return { json: { action, ticket, alert: a, slackText } };\n});"
+      }
+    },
+    {
+      "id": "6a1f0c52-1b7e-4c0e-9f21-0a5d3e7b1004",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Posts to a Slack Incoming Webhook (env SLACK_WEBHOOK_URL). Without it the node fails softly and the ticket is still visible in the execution log. Swap for the Telegram / Jira node if preferred.",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.slackText }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Alertmanager Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Alerts": {
+      "main": [
+        [
+          {
+            "node": "Create/Resolve Incident Ticket (Jira mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create/Resolve Incident Ticket (Jira mock)": {
+      "main": [
+        [
+          {
+            "node": "Notify Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
